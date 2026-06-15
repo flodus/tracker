@@ -2,6 +2,9 @@
 
 Application personnelle de suivi fitness — HTML standalone, 100% offline.
 
+# Lien Direct
+https://flodus.github.io/tracker/flo-tracker.html
+
 ## C'est quoi
 
 Tracker de remise en forme démarré le 1er juin 2026. Programme HIIT + Challenge 100 pompes.  

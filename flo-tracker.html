@@ -455,7 +455,7 @@ const MSG_MN=[
   ['Sérieusement ? 3 jours ? 😅','Le programme commence à se demander si tu existes encore.'],
   ['4 jours Flo... 🤨','Le canapé commence à avoir la forme de ton corps.'],
   ['5 jours. Cinq. 😤','Le festival c\'est dans combien de semaines ? Parce que là t\'avances à reculons.'],
-  ['6 jours sans rien faire 😬','Tu sais ce que t'as à faire.'],
+  ['6 jours sans rien faire 😬','Tu sais ce que t\'as à faire.'],
   ['Une semaine. 7 jours. 🚨','T\'as mis tout ce plan en place pour rien ? Qu\'est-ce qui se passe ?'],
 ];
 
@@ -1294,6 +1294,8 @@ function renderStats(el){
   <div class="card"><div class="ct">Données</div>
     <div style="display:flex;gap:8px">
       <button class="btn full" onclick="exportCSV()">⬇ Export CSV</button>
+      <button class="btn full" onclick="document.getElementById('csv-import').click()">⬆ Import CSV</button>
+      <input type="file" id="csv-import" accept=".csv" style="display:none" onchange="importCSV(this)">
       <button class="btn rd full" onclick="resetData()">🗑 Reset</button>
     </div>
   </div>`;
@@ -1439,6 +1441,42 @@ function setLastDrink(){
   const d=$('alc-date')?.value||ts();
   D.lastDrinkDate=d;sv();renderRecapContent();
 }
+function importCSV(input){
+  const file=input.files[0];if(!file)return;
+  const reader=new FileReader();
+  reader.onload=e=>{
+    const lines=e.target.result.split('\n').filter(l=>l.trim()&&!l.startsWith('Type'));
+    let imported={weighings:0,sessions:0};
+    lines.forEach(line=>{
+      const cols=line.split(',');
+      const type=cols[0]?.trim();const date=cols[1]?.trim();
+      if(!type||!date)return;
+      if(type==='Pesée'){
+        const w=parseFloat(cols[2]);const f=parseFloat(cols[3]);
+        if(!w||isNaN(w))return;
+        if(!D.weighings)D.weighings=[];
+        if(!D.weighings.find(x=>x.date===date)){
+          D.weighings.push({date,weight:w,fat:isNaN(f)?null:f});
+          imported.weighings++;
+        }
+      } else if(type==='Séance'){
+        const stype=cols[2]?.trim();const done=cols[3]?.trim()==='Fait';const note=cols[4]?.trim()||'';
+        if(!stype)return;
+        if(!D.sessions)D.sessions=[];
+        if(!D.sessions.find(x=>x.date===date&&x.type===stype)){
+          D.sessions.push({date,type:stype,done,note,ts:''});
+          imported.sessions++;
+        }
+      }
+    });
+    D.weighings?.sort((a,b)=>a.date.localeCompare(b.date));
+    D.sessions?.sort((a,b)=>a.date.localeCompare(b.date));
+    sv();renderAll();
+    alert(`Import terminé ✓\n${imported.weighings} pesées · ${imported.sessions} séances ajoutées`);
+    input.value='';
+  };
+  reader.readAsText(file);
+}
 function exportCSV(){
   let csv='Type,Date,Valeur1,Valeur2,Note\n';
   (D.weighings||[]).forEach(w=>csv+=`Pesée,${w.date},${w.weight},${w.fat||''},\n`);
@@ -1464,26 +1502,24 @@ function startDate(){
   return D.startDate||nextGoal()?.start||D.goals?.[0]?.start||ts();
 }
 
-const _appEl=document.getElementById('app');
-const _appHTML=_appEl.innerHTML;
-
 function showSetup(){
   const today=ts();
-  _appEl.innerHTML=`
-  <div style="min-height:100vh;display:flex;align-items:center;justify-content:center;background:var(--bg);padding:24px;box-sizing:border-box">
-    <div class="card" style="max-width:340px;width:100%;text-align:center;padding:32px 24px">
-      <div style="font-family:'Bebas Neue',sans-serif;font-size:36px;color:var(--orange);letter-spacing:2px;margin-bottom:8px">FLO TRACKER</div>
-      <div style="font-size:14px;color:var(--muted);margin-bottom:32px">Bienvenue ! Configurons ton programme.</div>
-      <div class="fl" style="text-align:left;margin-bottom:6px">Date de début du programme</div>
-      <input type="date" id="setup-date" value="${today}" style="width:100%;box-sizing:border-box;margin-bottom:20px">
-      <div class="fl" style="text-align:left;margin-bottom:6px">Pesée initiale (optionnel)</div>
-      <div style="display:flex;gap:8px;margin-bottom:20px">
-        <input type="number" id="setup-weight" placeholder="Poids (kg)" step="0.1" style="flex:1">
-        <input type="number" id="setup-fat" placeholder="% MG" step="0.1" style="flex:1">
-      </div>
-      <button class="btn full" onclick="setupDone()">C'est parti ! 🔥</button>
+  const ov=document.createElement('div');
+  ov.id='setup-overlay';
+  ov.style.cssText='position:fixed;inset:0;background:var(--bg);z-index:9999;display:flex;align-items:center;justify-content:center;padding:24px;box-sizing:border-box';
+  ov.innerHTML=`<div class="card" style="max-width:340px;width:100%;text-align:center;padding:32px 24px">
+    <div style="font-family:'Bebas Neue',sans-serif;font-size:36px;color:var(--orange);letter-spacing:2px;margin-bottom:8px">FLO TRACKER</div>
+    <div style="font-size:14px;color:var(--muted);margin-bottom:32px">Bienvenue ! Configurons ton programme.</div>
+    <div class="fl" style="text-align:left;margin-bottom:6px">Date de début du programme</div>
+    <input type="date" id="setup-date" value="${today}" style="width:100%;box-sizing:border-box;margin-bottom:20px">
+    <div class="fl" style="text-align:left;margin-bottom:6px">Pesée initiale (optionnel)</div>
+    <div style="display:flex;gap:8px;margin-bottom:20px">
+      <input type="number" id="setup-weight" placeholder="Poids (kg)" step="0.1" style="flex:1">
+      <input type="number" id="setup-fat" placeholder="% MG" step="0.1" style="flex:1">
     </div>
+    <button class="btn full" onclick="setupDone()">C'est parti ! 🔥</button>
   </div>`;
+  document.body.appendChild(ov);
 }
 
 function setupDone(){
@@ -1498,7 +1534,8 @@ function setupDone(){
     D.weighings.sort((a,b)=>a.date.localeCompare(b.date));
   }
   sv();
-  _appEl.innerHTML=_appHTML;
+  const ov=document.getElementById('setup-overlay');
+  if(ov)ov.remove();
   renderAll();
 }
 

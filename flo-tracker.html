@@ -239,26 +239,9 @@ input[type=checkbox]{width:18px;height:18px;accent-color:var(--orange);flex-shri
 // ══ STORAGE ══════════════════════════════════
 const SK='flo_tracker';
 // Hard-coded data — always injected, localStorage only adds new entries on top
-const HC_WEIGHINGS=[
-  {date:'2026-06-01',weight:78.1,fat:23.3},
-  {date:'2026-06-05',weight:75.1,fat:22.4},
-  {date:'2026-06-08',weight:75.0,fat:22.0}
-];
-const HC_SESSIONS=[
-  {date:'2026-06-01',type:'HIIT',done:true,note:'YouTube 15 min · ça a piqué 🔥',ts:''},
-  {date:'2026-06-02',type:'POMPES',done:true,note:'11-20 pompes J1 · 41 pompes',ts:'',pumpData:{counts:[8,9,7,7,10],targets:[8,9,7,7,8],lvl:0,sem:0,day:0}},
-  {date:'2026-06-04',type:'HIIT',done:true,note:'YouTube 15 min · Mal aux abdos mais JE L\'AI FAIT !!! 💪🔥',ts:''},
-  {date:'2026-06-05',type:'POMPES',done:true,note:'11-20 pompes J2 · 46 pompes · à la place du HIIT',ts:'',pumpData:{counts:[9,10,8,8,11],targets:[9,10,8,8,10],lvl:0,sem:0,day:1}},
-  {date:'2026-06-06',type:'POMPES',done:true,note:'11-20 pompes J3 · 55 pompes',ts:'',pumpData:{counts:[11,13,9,9,13],targets:[11,13,9,9,13],lvl:0,sem:0,day:2}},
-  {date:'2026-06-08',type:'HIIT',done:true,note:'YouTube 15 min ✓',ts:''},
-  {date:'2026-06-09',type:'POMPES',done:true,note:'11-20 pompes J4 · 54 pompes (à refaire)',ts:'19:56',pumpData:{counts:[12,14,10,10,8],targets:[12,14,10,10,15],lvl:0,sem:1,day:0}},
-  {date:'2026-06-11',type:'POMPES',done:true,note:'11-20 pompes J4 · 46 pompes (à refaire)',ts:'',pumpData:{counts:[12,14,10,10,0],targets:[12,14,10,10,15],lvl:0,sem:1,day:0}}
-];
-const DEFAULT_GOALS=[
-  {id:'g1',label:'Festival avec Louise 🎪',date:'2026-07-17',start:'2026-06-01',targetWeight:72,targetFat:16,why:'Mon moment hors du temps. Louise fait son 1er festival avec moi avant la Chine.',status:null,feeling:''},
-  {id:'g2',label:'Weekend avec Petit Chat 🤞🤞🤞',date:'2026-06-12',start:'2026-06-01',targetWeight:75,targetFat:18,why:"1ère rencontre... Enfin !? Je veux me sentir bien dans ma peau pour me sentir beau dans ses beaux yeux 😍",status:null,feeling:''},
-  {id:'g3',label:'Rencontre Aurélie 💛🐱',date:'2026-08-04',start:'2026-06-01',targetWeight:72,targetFat:16,why:"Un bout d'été avec Aurélie. Je veux être bien dans mon corps pour être bien dans ma tête.",status:null,feeling:''}
-];
+const HC_WEIGHINGS=[];
+const HC_SESSIONS=[];
+const DEFAULT_GOALS=[];
 
 let D={weighings:[],sessions:[],goals:[...DEFAULT_GOALS],journal:[],activeProg:'hiit_pompes',customProg:null,renfo:{enabled:false},renfoCustom:null};
 
@@ -469,10 +452,10 @@ const MSG_OK=[
 const MSG_M1=['Bon... c\'est juste un jour 😏','Un jour de raté c\'est pas la fin du monde. Demain t\'as une revanche.'];
 const MSG_MN=[
   ['Allez Flo... 😒','2 jours de suite. Le canapé commence à prendre la forme de tes fesses.'],
-  ['Sérieusement ? 3 jours ? 😅','À ce rythme Louise va te présenter à son pote comme "mon père, celui qui devait se remettre en forme".'],
-  ['4 jours Flo... 🤨','Même Aurélie commence à se poser des questions.'],
+  ['Sérieusement ? 3 jours ? 😅','Le programme commence à se demander si tu existes encore.'],
+  ['4 jours Flo... 🤨','Le canapé commence à avoir la forme de ton corps.'],
   ['5 jours. Cinq. 😤','Le festival c\'est dans combien de semaines ? Parce que là t\'avances à reculons.'],
-  ['6 jours sans rien faire 😬','Louise débarque bientôt. Aurélie attend.'],
+  ['6 jours sans rien faire 😬','Tu sais ce que t'as à faire.'],
   ['Une semaine. 7 jours. 🚨','T\'as mis tout ce plan en place pour rien ? Qu\'est-ce qui se passe ?'],
 ];
 
@@ -1011,7 +994,15 @@ function renderWeigh(){
     const wy70=pad+(1-(70-minW)/(maxW-minW))*(pH-pad*1.4);
     const bandW=`<rect x="${pad}" y="${Math.min(wy74,wy70)}" width="${gW-pad*2}" height="${Math.abs(wy70-wy74)}" fill="#5bb8f5" opacity="0.15" rx="2"/>`;
     let wLines='';for(let i=0;i<wPts.length-1;i++)wLines+=`<line x1="${wPts[i].x}" y1="${wPts[i].y}" x2="${wPts[i+1].x}" y2="${wPts[i+1].y}" stroke="#5bb8f5" stroke-width="2.5" stroke-linecap="round"/>`;
-    const wDots=wPts.map(p=>`<circle cx="${p.x}" cy="${p.y}" r="4" fill="#5bb8f5" stroke="white" stroke-width="1.5"/><text x="${p.x}" y="${p.y-9}" text-anchor="middle" font-size="8" fill="#3a9fd5" font-weight="700">${p.w}</text>`).join('');
+    // Courbe de tendance linéaire
+    let trendLine='';
+    if(wPts.length>=2){
+      const n=wPts.length;const sumX=wPts.reduce((a,p)=>a+p.x,0);const sumY=wPts.reduce((a,p)=>a+p.y,0);
+      const sumXY=wPts.reduce((a,p)=>a+p.x*p.y,0);const sumX2=wPts.reduce((a,p)=>a+p.x*p.x,0);
+      const slope=(n*sumXY-sumX*sumY)/(n*sumX2-sumX*sumX);const intercept=(sumY-slope*sumX)/n;
+      const tx1=pad,ty1=slope*tx1+intercept,tx2=gW-pad,ty2=slope*tx2+intercept;
+      trendLine=`<line x1="${tx1}" y1="${ty1}" x2="${tx2}" y2="${ty2}" stroke="#5bb8f5" stroke-width="1" stroke-dasharray="4,3" opacity="0.5"/>`;
+    }    const wDots=wPts.map(p=>`<circle cx="${p.x}" cy="${p.y}" r="4" fill="#5bb8f5" stroke="white" stroke-width="1.5"/><text x="${p.x}" y="${p.y-9}" text-anchor="middle" font-size="8" fill="#3a9fd5" font-weight="700">${p.w}</text>`).join('');
     const wyLbl=[80,74,70,69].map(v=>{const y=pad+(1-(v-minW)/(maxW-minW))*(pH-pad*1.4);return`<text x="${gW-pad+4}" y="${y+3}" text-anchor="start" font-size="7" fill="${v===74||v===70?'#5bb8f5':'#c0b8b0'}">${v}</text>`;}).join('');
     const wAxisLbl=`<text x="8" y="${pH/2}" text-anchor="middle" font-size="8" fill="#5bb8f5" font-weight="700" transform="rotate(-90,8,${pH/2})">kg</text>`;
     // === MG ===
@@ -1039,7 +1030,7 @@ function renderWeigh(){
         ${F.length>=2?`<span style="font-size:9px;color:#3d9970;opacity:0.8">■ cible 10-14%</span>`:''}
       </div>
       <svg width="100%" viewBox="-12 0 ${gW+24} ${totalH+22}" style="display:block;overflow:hidden">
-        ${vLines}${bandW}${wLines}${wDots}${wyLbl}${wAxisLbl}
+        ${vLines}${bandW}${trendLine}${wLines}${wDots}${wyLbl}${wAxisLbl}
         ${fSvg}${xL}
       </svg>
     </div>`;
@@ -1247,7 +1238,6 @@ function renderRecapContent(){
 }
 function renderStats(el){
   const today=ts();const start=startDate();
-  // Streak
   const todaySess=(D.sessions||[]).find(x=>x.date===today&&x.done);
   const todayP=curProg()[new Date().getDay()];
   let streak=(todayP&&todayP.type!=='REPOS'&&todaySess)?1:0;
@@ -1257,19 +1247,35 @@ function renderStats(el){
   while(cur<=td){const s=cur.toISOString().split('T')[0];const p=curProg()[cur.getDay()];if(p&&p.type!=='REPOS'){totW++;const se=(D.sessions||[]).find(x=>x.date===s&&x.done);if(se)totD++;}cur.setDate(cur.getDate()+1);}
   const dots=[];let dd=new Date(today+'T12:00:00');
   for(let i=0;i<14;i++){const s=dd.toISOString().split('T')[0];const st=dayStatus(s);const c=st==='dne'?'var(--green)':st==='msd'?'var(--red)':st==='rst'?'var(--border2)':st==='today'?'var(--orange)':'var(--card3)';dots.unshift(`<span class="sdot" style="background:${c}"></span>`);dd.setDate(dd.getDate()-1);}
-  // Pompes
+  // Pompes + record
   const pumpSess=(D.sessions||[]).filter(s=>s.type==='POMPES'&&s.done&&s.pumpData).slice(-12);
-  const cumul=(D.sessions||[]).filter(s=>s.type==='POMPES'&&s.done&&s.pumpData).reduce((sum,s)=>sum+s.pumpData.counts.reduce((a,b)=>a+b,0),0);
+  const allPumpSess=(D.sessions||[]).filter(s=>s.type==='POMPES'&&s.done&&s.pumpData);
+  const cumul=allPumpSess.reduce((sum,s)=>sum+s.pumpData.counts.reduce((a,b)=>a+b,0),0);
+  const record=allPumpSess.length?Math.max(...allPumpSess.map(s=>s.pumpData.counts.reduce((a,b)=>a+b,0))):0;
   let pGraph='';
   if(pumpSess.length>=2){
     const tots=pumpSess.map(s=>s.pumpData.counts.reduce((a,b)=>a+b,0));const maxT=Math.max(...tots);
     const gW=260,gH=70,pad=22;const xS=(gW-pad*2)/Math.max(pumpSess.length-1,1);
     const pts=pumpSess.map((s,i)=>{const x=pad+i*xS;const y=gH-pad-((tots[i]/maxT))*(gH-pad*2);return{x,y,t:tots[i],date:s.date};});
     let lines='';for(let i=0;i<pts.length-1;i++){lines+=`<line x1="${pts[i].x}" y1="${pts[i].y}" x2="${pts[i+1].x}" y2="${pts[i+1].y}" stroke="var(--orange)" stroke-width="2.5" stroke-linecap="round"/>`;}
-    const dSvg=pts.map(p=>`<circle cx="${p.x}" cy="${p.y}" r="4" fill="var(--orange)" stroke="white" stroke-width="1.5"/><text x="${p.x}" y="${p.y-9}" text-anchor="middle" font-size="9" fill="var(--orange)" font-weight="600">${p.t}</text>`).join('');
+    const dSvg=pts.map(p=>`<circle cx="${p.x}" cy="${p.y}" r="4" fill="${p.t===record?'var(--green)':'var(--orange)'}" stroke="white" stroke-width="1.5"/><text x="${p.x}" y="${p.y-9}" text-anchor="middle" font-size="9" fill="${p.t===record?'var(--green)':'var(--orange)'}" font-weight="600">${p.t}${p.t===record?' 🏆':''}</text>`).join('');
     const xL=pts.map(p=>{const d=new Date(p.date+'T12:00:00');return`<text x="${p.x}" y="${gH-4}" text-anchor="middle" font-size="7" fill="var(--dim)">${d.getDate()}/${d.getMonth()+1}</text>`;}).join('');
     pGraph=`<svg width="100%" viewBox="0 0 ${gW} ${gH}" style="overflow:visible"><line x1="${pad}" y1="${pad}" x2="${pad}" y2="${gH-pad}" stroke="var(--border2)" stroke-width="1"/><line x1="${pad}" y1="${gH-pad}" x2="${gW-pad}" y2="${gH-pad}" stroke="var(--border2)" stroke-width="1"/>${lines}${dSvg}${xL}</svg>`;
   }
+  // Compteur alcool
+  const alcDate=D.lastDrinkDate||null;
+  let alcDays=null;
+  if(alcDate){const diff=Math.floor((new Date(today+'T12:00:00')-new Date(alcDate+'T12:00:00'))/(1000*60*60*24));alcDays=diff;}
+  const alcHtml=`<div class="card"><div class="ct">Sans alcool</div>
+  ${alcDays===null?`<div style="font-size:12px;color:var(--muted);margin-bottom:10px">Indique la dernière fois que t'as bu.</div>`
+  :alcDays===0?`<div style="font-family:'Bebas Neue',sans-serif;font-size:30px;color:var(--red);margin-bottom:6px">Aujourd'hui 😅</div>`
+  :`<div style="font-family:'Bebas Neue',sans-serif;font-size:36px;color:${alcDays>=7?'var(--green)':'var(--orange)'}">${alcDays}<span style="font-size:14px"> jour${alcDays>1?'s':''}</span></div>
+  <div style="font-size:10px;color:var(--dim);margin-bottom:10px">Dernière fois : ${alcDate}</div>`}
+  <div style="display:flex;gap:8px;align-items:center">
+    <input type="date" id="alc-date" value="${ts()}" style="flex:1;font-size:11px">
+    <button class="btn rd sm" onclick="setLastDrink()">J'ai bu ce jour</button>
+  </div>
+  </div>`;
   const ws=D.weighings||[];let statHtml='<div style="font-size:12px;color:var(--muted)">Besoin d\'au moins 2 pesées.</div>';
   if(ws.length>=2){const f=ws[0],l=ws[ws.length-1];const dw=(l.weight-f.weight).toFixed(1);const df=(l.fat&&f.fat)?(l.fat-f.fat).toFixed(1):null;const mg0=f.fat?(f.fat/100*f.weight).toFixed(1):null;const mg1=l.fat?(l.fat/100*l.weight).toFixed(1):null;const dmg=(mg0&&mg1)?(mg1-mg0).toFixed(1):null;
     statHtml=`<div style="display:flex;gap:14px;flex-wrap:wrap">
@@ -1282,8 +1288,15 @@ function renderStats(el){
     <div><div class="fl">Taux</div><div style="font-family:'Bebas Neue',sans-serif;font-size:30px;color:${totW>0&&totD/totW>=0.8?'var(--green)':'var(--orange)'}">${totW>0?Math.round(totD/totW*100):0}<span style="font-size:14px">%</span></div></div>
     <div><div class="fl">Séances</div><div style="font-family:'Bebas Neue',sans-serif;font-size:30px;color:var(--text)">${totD}<span style="font-size:14px;color:var(--muted)">/${totW}</span></div></div>
   </div><div class="fl" style="margin-bottom:6px">14 derniers jours</div><div>${dots.join('')}</div></div>
+  ${alcHtml}
   <div class="card"><div class="ct">Évolution poids</div>${statHtml}</div>
-  ${cumul>0?`<div class="card"><div class="ct">Progression pompes</div><div style="font-family:'Bebas Neue',sans-serif;font-size:26px;color:var(--orange);margin-bottom:6px">${cumul} <span style="font-size:13px;color:var(--muted)">pompes au total</span></div>${pGraph}</div>`:''}`;
+  ${cumul>0?`<div class="card"><div class="ct" style="display:flex;justify-content:space-between"><span>Progression pompes</span>${record?`<span style="font-size:10px;color:var(--green)">🏆 Record ${record}</span>`:''}</div><div style="font-family:'Bebas Neue',sans-serif;font-size:26px;color:var(--orange);margin-bottom:6px">${cumul} <span style="font-size:13px;color:var(--muted)">pompes au total</span></div>${pGraph}</div>`:''}
+  <div class="card"><div class="ct">Données</div>
+    <div style="display:flex;gap:8px">
+      <button class="btn full" onclick="exportCSV()">⬇ Export CSV</button>
+      <button class="btn rd full" onclick="resetData()">🗑 Reset</button>
+    </div>
+  </div>`;
 }
 function renderCal(el){
   const first=new Date(calY,calM,1).getDay();const days=new Date(calY,calM+1,0).getDate();const today=ts();
@@ -1325,17 +1338,18 @@ function renderObjectifs(el){
         ${lastW?`<div style="background:var(--card2);border-radius:6px;padding:6px 10px;font-size:11px"><span style="color:var(--dim)">Maintenant</span><br><b style="color:${wColor()}">${lastW.weight}kg${lastW.fat?' · '+lastW.fat+'%':''}</b></div>`:''}
       </div>
       ${g.feeling?`<div style="font-size:12px;color:var(--muted);font-style:italic;padding:8px;background:var(--card2);border-radius:6px;margin-bottom:8px">"${g.feeling}"</div>`:''}
-      ${(isPast||isToday)&&!g.status?`<div style="display:flex;gap:6px;margin-bottom:8px">
+      ${isPast||isToday?`<div style="display:flex;gap:6px;margin-bottom:8px">
         <button class="btn g sm" style="flex:1" onclick="setGoalStatus('${g.id}','ok')">✓ Atteint</button>
         <button class="btn rd sm" style="flex:1" onclick="setGoalStatus('${g.id}','ko')">✗ Pas atteint</button>
-      </div>`:(isPast||isToday)&&g.status?`<div style="margin-bottom:8px"><button class="btn dk sm" onclick="setGoalStatus('${g.id}',null)">↺ Réinitialiser</button></div>`:''}
+        ${g.status?`<button class="btn dk sm" onclick="setGoalStatus('${g.id}',null)">Reset</button>`:''}
+      </div>`:''}
       <button class="btn gh full" onclick="editGoal('${g.id}')">✎ Modifier</button>
     </div>`;
   });
   html+=`<button class="btn dk full" style="margin-top:4px" onclick="editGoal('__new__')">+ Ajouter un objectif</button>`;
   el.innerHTML=html;
 }
-function setGoalStatus(id,status){const g=(D.goals||[]).find(x=>x.id===id);if(g){g.status=status;sv();renderAll();}}
+function setGoalStatus(id,status){const g=(D.goals||[]).find(x=>x.id===id);if(g){g.status=status;sv();renderRecapContent();}}
 function editGoal(id){
   const isNew=id==='__new__';
   const g=isNew?{id:'g_'+Date.now(),label:'',date:'',start:'2026-06-01',targetWeight:'',targetFat:'',why:'',status:null,feeling:''}:(D.goals||[]).find(x=>x.id===id)||{};
@@ -1397,44 +1411,22 @@ function openDay(ds){
     <div class="mdt">${FR_D[dw]} ${d.getDate()} ${FR_M[d.getMonth()]} ${d.getFullYear()}</div>
     ${stBadge}`;
   objsOnDay.forEach(g=>{
-    const gStatus=g.status==='ok'?'<span class="tag gn">✓ Atteint 🎉</span>':g.status==='ko'?'<span class="tag rd">✗ Pas atteint</span>':'';
     html+=`<div class="msec" style="margin-top:10px"><div class="mst">OBJECTIF</div>
       <div style="font-size:14px;font-weight:700;color:var(--purple);margin-bottom:6px">${g.label}</div>
       <div style="font-size:12px;color:var(--muted);margin-bottom:8px">${g.why}</div>
-      ${gStatus?`<div style="margin-bottom:8px">${gStatus}</div><button class="btn dk sm" onclick="setGoalStatus('${g.id}',null);openDay('${ds}')">↺ Réinitialiser</button>`:`<div style="display:flex;gap:8px;margin-bottom:6px">
+      <div style="display:flex;gap:8px;margin-bottom:6px">
         <button class="btn g sm" style="flex:1" onclick="setGoalStatus('${g.id}','ok');openDay('${ds}')">✓ Atteint</button>
         <button class="btn rd sm" style="flex:1" onclick="setGoalStatus('${g.id}','ko');openDay('${ds}')">✗ Pas atteint</button>
-      </div>`}
-    </div>`;
+      </div></div>`;
   });
   if(sess.length){
     html+=`<div class="msec" style="margin-top:10px"><div class="mst">SÉANCES</div>`;
-    sess.forEach((s,si)=>{
-      html+=`<div style="font-size:13px;color:var(--muted);margin-bottom:4px;display:flex;justify-content:space-between;align-items:center">
-        <span>${s.type} ${s.done?'✓':'✗'}${s.note?' · '+s.note:''}${s.ts?' · '+s.ts:''}</span>
-        <button class="btn rd sm" style="padding:2px 8px;font-size:9px" onclick="delSessModal('${ds}','${s.type}')">✕</button>
-      </div>`;
+    sess.forEach(s=>{
+      html+=`<div style="font-size:13px;color:var(--muted);margin-bottom:6px">${s.type} ${s.done?'✓':'✗'}${s.note?' · '+s.note:''}${s.ts?' · '+s.ts:''}</div>`;
       if(s.pumpData?.counts){const badges=s.pumpData.counts.map((c,i)=>{const isL=i===s.pumpData.targets.length-1;return`<span class="tag ${isL?'on':c>=s.pumpData.targets[i]?'gn':'rd'}" style="font-size:9px">${c}${isL?' MAX':'/'+s.pumpData.targets[i]}</span>`;}).join('');html+=`<div style="margin-bottom:4px">${badges}</div>`;}
     });
     html+=`</div>`;
   }
-  // Formulaire ajout séance (jours passés ou aujourd'hui seulement)
-  if(ds<=today){
-    html+=`<div class="msec"><div class="mst">AJOUTER SÉANCE</div>
-      <div style="display:flex;gap:6px;margin-bottom:8px">
-        <select id="mst" style="flex:1;padding:8px;border:1px solid var(--border);border-radius:8px;font-size:12px;background:var(--card2)">
-          <option value="HIIT">HIIT</option>
-          <option value="POMPES">Pompes</option>
-          <option value="AUTRE">Autre</option>
-        </select>
-        <select id="msd" style="flex:1;padding:8px;border:1px solid var(--border);border-radius:8px;font-size:12px;background:var(--card2)">
-          <option value="1">✓ Fait</option>
-          <option value="0">✗ Raté</option>
-        </select>
-      </div>
-      <input type="text" id="msn" placeholder="Note (optionnel)" style="width:100%;box-sizing:border-box;margin-bottom:8px">
-      <button class="btn full" onclick="addSessModal('${ds}')">Ajouter</button>
-    </div>`;}
   if(weigh){const mgKg=weigh.fat?(weigh.fat/100*weigh.weight).toFixed(1):null;html+=`<div class="msec"><div class="mst">PESÉE</div><div style="font-size:16px;font-weight:600">${weigh.weight} kg${weigh.fat?' · '+weigh.fat+'% MG':''}</div>${mgKg?`<div style="font-size:12px;color:var(--muted)">${mgKg} kg gras</div>`:''}</div>`;}
   else{html+=`<div class="msec"><div class="mst">AJOUTER PESÉE</div><div class="row"><input type="number" id="mw" placeholder="Poids (kg)" step="0.1"><input type="number" id="mf" placeholder="% MG" step="0.1"></div><button class="btn full" onclick="addWeighModal('${ds}')">Enregistrer</button></div>`;}
   html+=`<div class="msec"><div class="mst">JOURNAL</div>`;
@@ -1443,19 +1435,19 @@ function openDay(ds){
   if(!sess.length&&!weigh&&!jEntries.length&&!objsOnDay.length)html+=`<div style="font-size:13px;color:var(--dimmer);text-align:center;margin-top:8px">Aucune donnée ce jour.</div>`;
   openM(html);
 }
-function addSessModal(date){
-  const type=$('mst')?.value;if(!type)return;
-  const done=$('msd')?.value==='1';
-  const note=$('msn')?.value||'';
-  if(!D.sessions)D.sessions=[];
-  D.sessions.push({date,type,done,note,ts:''});
-  D.sessions.sort((a,b)=>a.date.localeCompare(b.date));
-  sv();renderAll();openDay(date);
+function setLastDrink(){
+  const d=$('alc-date')?.value||ts();
+  D.lastDrinkDate=d;sv();renderRecapContent();
 }
-function delSessModal(date,type){
-  if(!confirm('Supprimer cette séance ?'))return;
-  D.sessions=(D.sessions||[]).filter(s=>!(s.date===date&&s.type===type));
-  sv();renderAll();openDay(date);
+function exportCSV(){
+  let csv='Type,Date,Valeur1,Valeur2,Note\n';
+  (D.weighings||[]).forEach(w=>csv+=`Pesée,${w.date},${w.weight},${w.fat||''},\n`);
+  (D.sessions||[]).forEach(s=>csv+=`Séance,${s.date},${s.type},${s.done?'Fait':'Raté'},${(s.note||'').replace(/,/g,' ')}\n`);
+  const blob=new Blob([csv],{type:'text/csv'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='flo-tracker-export.csv';a.click();
+}
+function resetData(){
+  if(!confirm('Remettre toutes les données à zéro ? Cette action est irréversible.'))return;
+  localStorage.removeItem('flo_tracker');location.reload();
 }
 function addWeighModal(date){
   const w=$('mw')?.value;if(!w)return;const f=$('mf')?.value;
@@ -1468,6 +1460,48 @@ function addJournalModal(date){
 }
 
 // ══ RENDER ALL ════════════════════════════════
+function startDate(){
+  return D.startDate||nextGoal()?.start||D.goals?.[0]?.start||ts();
+}
+
+const _appEl=document.getElementById('app');
+const _appHTML=_appEl.innerHTML;
+
+function showSetup(){
+  const today=ts();
+  _appEl.innerHTML=`
+  <div style="min-height:100vh;display:flex;align-items:center;justify-content:center;background:var(--bg);padding:24px;box-sizing:border-box">
+    <div class="card" style="max-width:340px;width:100%;text-align:center;padding:32px 24px">
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:36px;color:var(--orange);letter-spacing:2px;margin-bottom:8px">FLO TRACKER</div>
+      <div style="font-size:14px;color:var(--muted);margin-bottom:32px">Bienvenue ! Configurons ton programme.</div>
+      <div class="fl" style="text-align:left;margin-bottom:6px">Date de début du programme</div>
+      <input type="date" id="setup-date" value="${today}" style="width:100%;box-sizing:border-box;margin-bottom:20px">
+      <div class="fl" style="text-align:left;margin-bottom:6px">Pesée initiale (optionnel)</div>
+      <div style="display:flex;gap:8px;margin-bottom:20px">
+        <input type="number" id="setup-weight" placeholder="Poids (kg)" step="0.1" style="flex:1">
+        <input type="number" id="setup-fat" placeholder="% MG" step="0.1" style="flex:1">
+      </div>
+      <button class="btn full" onclick="setupDone()">C'est parti ! 🔥</button>
+    </div>
+  </div>`;
+}
+
+function setupDone(){
+  const date=document.getElementById('setup-date')?.value||ts();
+  const w=parseFloat(document.getElementById('setup-weight')?.value);
+  const f=parseFloat(document.getElementById('setup-fat')?.value);
+  D.startDate=date;
+  if(w&&!isNaN(w)){
+    if(!D.weighings)D.weighings=[];
+    D.weighings=D.weighings.filter(x=>x.date!==date);
+    D.weighings.push({date,weight:w,fat:!isNaN(f)?f:null});
+    D.weighings.sort((a,b)=>a.date.localeCompare(b.date));
+  }
+  sv();
+  _appEl.innerHTML=_appHTML;
+  renderAll();
+}
+
 function renderAll(){
   renderHeader();
   if(curTab===0)renderToday();
@@ -1475,7 +1509,12 @@ function renderAll(){
   if(curTab===2)renderSessContent();
   if(curTab===3)renderRecapContent();
 }
-renderAll();
+
+if(!D.startDate&&D.weighings.length===0&&D.sessions.length===0){
+  showSetup();
+} else {
+  renderAll();
+}
 </script>
 </body>
 </html>

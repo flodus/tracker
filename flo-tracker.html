@@ -1002,6 +1002,26 @@ function renderWeigh(){
       const slope=(n*sumXY-sumX*sumY)/(n*sumX2-sumX*sumX);const intercept=(sumY-slope*sumX)/n;
       const tx1=pad,ty1=slope*tx1+intercept,tx2=gW-pad,ty2=slope*tx2+intercept;
       trendLine=`<line x1="${tx1}" y1="${ty1}" x2="${tx2}" y2="${ty2}" stroke="#5bb8f5" stroke-width="1" stroke-dasharray="4,3" opacity="0.5"/>`;
+    }
+    // Courbe projetée vers objectif
+    let projW='';
+    const goal=D.goals?.find(g=>g.targetWeight||g.targetFat);
+    if(goal&&goal.targetWeight&&ws.length>=1){
+      // Calculer la position X de la date cible par rapport à la plage affichée
+      const firstDate=new Date(ws[0].date+'T12:00:00');
+      const lastDate=new Date(ws[ws.length-1].date+'T12:00:00');
+      const goalDate=new Date(goal.end+'T12:00:00');
+      const totalDays=(lastDate-firstDate)/(86400000)||1;
+      const goalDays=(goalDate-firstDate)/(86400000);
+      const xRange=gW-pad*2;
+      const xGoal=pad+(goalDays/totalDays)*xRange;
+      const yGoal=pad+(1-(goal.targetWeight-minW)/(maxW-minW))*(pH-pad*1.4);
+      const startPt=wPts[wPts.length-1];
+      if(xGoal>startPt.x){
+        projW=`<line x1="${startPt.x}" y1="${startPt.y}" x2="${Math.min(xGoal,gW-pad+20)}" y2="${yGoal}" stroke="#e8622a" stroke-width="1.5" stroke-dasharray="5,4" opacity="0.7"/>
+        <circle cx="${Math.min(xGoal,gW-pad+20)}" cy="${yGoal}" r="4" fill="var(--orange)" opacity="0.8"/>
+        <text x="${Math.min(xGoal,gW-pad+20)}" y="${yGoal-8}" text-anchor="middle" font-size="8" fill="var(--orange)" font-weight="700">${goal.targetWeight}</text>`;
+      }
     }    const wDots=wPts.map(p=>`<circle cx="${p.x}" cy="${p.y}" r="4" fill="#5bb8f5" stroke="white" stroke-width="1.5"/><text x="${p.x}" y="${p.y-9}" text-anchor="middle" font-size="8" fill="#3a9fd5" font-weight="700">${p.w}</text>`).join('');
     const wyLbl=[80,74,70,69].map(v=>{const y=pad+(1-(v-minW)/(maxW-minW))*(pH-pad*1.4);return`<text x="${gW-pad+4}" y="${y+3}" text-anchor="start" font-size="7" fill="${v===74||v===70?'#5bb8f5':'#c0b8b0'}">${v}</text>`;}).join('');
     const wAxisLbl=`<text x="8" y="${pH/2}" text-anchor="middle" font-size="8" fill="#5bb8f5" font-weight="700" transform="rotate(-90,8,${pH/2})">kg</text>`;
@@ -1018,7 +1038,24 @@ function renderWeigh(){
       const fyLbl=[9,14,10,26].map(v=>{const y=fOffset+pad+((v-minF)/(maxF-minF))*(pH-pad*1.4);return`<text x="${gW-pad+4}" y="${y+3}" text-anchor="start" font-size="7" fill="${v===14||v===10?'#3d9970':'#c0b8b0'}">${v}%</text>`;}).join('');
       const fAxisLbl=`<text x="8" y="${fOffset+pH/2}" text-anchor="middle" font-size="8" fill="#d4960a" font-weight="700" transform="rotate(-90,8,${fOffset+pH/2})">%MG</text>`;
       const sep=`<line x1="${pad}" y1="${fOffset}" x2="${gW-pad}" y2="${fOffset}" stroke="#e8e4de" stroke-width="1"/>`;
-      fSvg=sep+bandF+fLines+fDots+fyLbl+fAxisLbl;
+      let projF='';
+      if(goal&&goal.targetFat&&fPts.length>=1){
+        const firstDate=new Date(ws[0].date+'T12:00:00');
+        const lastDate=new Date(ws[ws.length-1].date+'T12:00:00');
+        const goalDate=new Date(goal.end+'T12:00:00');
+        const totalDays=(lastDate-firstDate)/(86400000)||1;
+        const goalDays=(goalDate-firstDate)/(86400000);
+        const xRange=gW-pad*2;
+        const xGoalF=pad+(goalDays/totalDays)*xRange;
+        const yGoalF=fOffset+pad+((goal.targetFat-minF)/(maxF-minF))*(pH-pad*1.4);
+        const startF=fPts[fPts.length-1];
+        if(xGoalF>startF.x){
+          projF=`<line x1="${startF.x}" y1="${startF.y}" x2="${Math.min(xGoalF,gW-pad+20)}" y2="${yGoalF}" stroke="#e8622a" stroke-width="1.5" stroke-dasharray="5,4" opacity="0.7"/>
+          <circle cx="${Math.min(xGoalF,gW-pad+20)}" cy="${yGoalF}" r="4" fill="var(--orange)" opacity="0.8"/>
+          <text x="${Math.min(xGoalF,gW-pad+20)}" y="${yGoalF+16}" text-anchor="middle" font-size="8" fill="var(--orange)" font-weight="700">${goal.targetFat}%</text>`;
+        }
+      }
+      fSvg=sep+bandF+projF+fLines+fDots+fyLbl+fAxisLbl;
     }
     const xL=wPts.map(p=>{const d=new Date(p.date+'T12:00:00');return`<text x="${p.x}" y="${totalH+14}" text-anchor="middle" font-size="7" fill="#a09890">${d.getDate()}/${d.getMonth()+1}</text>`;}).join('');
     const vLines=wPts.map(p=>`<line x1="${p.x}" y1="${pad/2}" x2="${p.x}" y2="${totalH}" stroke="#f0ede8" stroke-width="1" stroke-dasharray="3,3"/>`).join('');
@@ -1028,9 +1065,10 @@ function renderWeigh(){
         ${F.length>=2?`<span style="font-size:9px;color:#d4960a;font-weight:700">● Masse grasse (%)</span>`:''}
         <span style="font-size:9px;color:#5bb8f5;opacity:0.6">■ cible 70-74 kg</span>
         ${F.length>=2?`<span style="font-size:9px;color:#3d9970;opacity:0.8">■ cible 10-14%</span>`:''}
+        ${goal&&(goal.targetWeight||goal.targetFat)?`<span style="font-size:9px;color:var(--orange);opacity:0.9">⟶ projection objectif</span>`:''}
       </div>
       <svg width="100%" viewBox="-12 0 ${gW+24} ${totalH+22}" style="display:block;overflow:hidden">
-        ${vLines}${bandW}${trendLine}${wLines}${wDots}${wyLbl}${wAxisLbl}
+        ${vLines}${bandW}${trendLine}${projW}${wLines}${wDots}${wyLbl}${wAxisLbl}
         ${fSvg}${xL}
       </svg>
     </div>`;
@@ -1506,32 +1544,63 @@ function showSetup(){
   const today=ts();
   const ov=document.createElement('div');
   ov.id='setup-overlay';
-  ov.style.cssText='position:fixed;inset:0;background:var(--bg);z-index:9999;display:flex;align-items:center;justify-content:center;padding:24px;box-sizing:border-box';
-  ov.innerHTML=`<div class="card" style="max-width:340px;width:100%;text-align:center;padding:32px 24px">
+  ov.style.cssText='position:fixed;inset:0;background:var(--bg);z-index:9999;overflow-y:auto;display:flex;align-items:flex-start;justify-content:center;padding:24px;box-sizing:border-box';
+  ov.innerHTML=`<div class="card" style="max-width:340px;width:100%;text-align:center;padding:32px 24px;margin:auto">
     <div style="font-family:'Bebas Neue',sans-serif;font-size:36px;color:var(--orange);letter-spacing:2px;margin-bottom:8px">FLO TRACKER</div>
-    <div style="font-size:14px;color:var(--muted);margin-bottom:32px">Bienvenue ! Configurons ton programme.</div>
-    <div class="fl" style="text-align:left;margin-bottom:6px">Date de début du programme</div>
-    <input type="date" id="setup-date" value="${today}" style="width:100%;box-sizing:border-box;margin-bottom:20px">
-    <div class="fl" style="text-align:left;margin-bottom:6px">Pesée initiale (optionnel)</div>
-    <div style="display:flex;gap:8px;margin-bottom:20px">
-      <input type="number" id="setup-weight" placeholder="Poids (kg)" step="0.1" style="flex:1">
-      <input type="number" id="setup-fat" placeholder="% MG" step="0.1" style="flex:1">
+    <div style="font-size:14px;color:var(--muted);margin-bottom:28px">Bienvenue ! Configurons ton programme.</div>
+
+    <div style="text-align:left;background:var(--card2);border-radius:10px;padding:14px;margin-bottom:16px">
+      <div class="fl" style="margin-bottom:6px">📅 Date de début du programme</div>
+      <input type="date" id="setup-date" value="${today}" style="width:100%;box-sizing:border-box">
     </div>
+
+    <div style="text-align:left;background:var(--card2);border-radius:10px;padding:14px;margin-bottom:16px">
+      <div class="fl" style="margin-bottom:4px">⚖️ Pesée du jour <span style="font-weight:400;text-transform:none;color:var(--dim)">(optionnel)</span></div>
+      <div style="font-size:11px;color:var(--dim);margin-bottom:8px">Tu te pèses aujourd'hui ? Rentre les valeurs maintenant, même si le programme commence plus tard.</div>
+      <div style="display:flex;gap:8px">
+        <input type="number" id="setup-weight" placeholder="Poids (kg)" step="0.1" style="flex:1">
+        <input type="number" id="setup-fat" placeholder="% MG" step="0.1" style="flex:1">
+      </div>
+    </div>
+
+    <div style="text-align:left;background:var(--card2);border-radius:10px;padding:14px;margin-bottom:24px">
+      <div class="fl" style="margin-bottom:4px">🎯 Objectif <span style="font-weight:400;text-transform:none;color:var(--dim)">(optionnel)</span></div>
+      <div style="display:flex;gap:8px;margin-bottom:10px">
+        <input type="number" id="setup-gw" placeholder="Poids cible (kg)" step="0.1" style="flex:1">
+        <input type="number" id="setup-gf" placeholder="% MG cible" step="0.1" style="flex:1">
+      </div>
+      <div class="fl" style="margin-bottom:6px">Date cible</div>
+      <input type="date" id="setup-gdate" style="width:100%;box-sizing:border-box">
+    </div>
+
     <button class="btn full" onclick="setupDone()">C'est parti ! 🔥</button>
   </div>`;
   document.body.appendChild(ov);
 }
 
 function setupDone(){
-  const date=document.getElementById('setup-date')?.value||ts();
+  const startD=document.getElementById('setup-date')?.value||ts();
+  const today=ts();
   const w=parseFloat(document.getElementById('setup-weight')?.value);
   const f=parseFloat(document.getElementById('setup-fat')?.value);
-  D.startDate=date;
+  const gw=parseFloat(document.getElementById('setup-gw')?.value);
+  const gf=parseFloat(document.getElementById('setup-gf')?.value);
+  const gdate=document.getElementById('setup-gdate')?.value;
+  D.startDate=startD;
+  // Pesée : horodatée aujourd'hui (pas la date de début)
   if(w&&!isNaN(w)){
     if(!D.weighings)D.weighings=[];
-    D.weighings=D.weighings.filter(x=>x.date!==date);
-    D.weighings.push({date,weight:w,fat:!isNaN(f)?f:null});
+    D.weighings=D.weighings.filter(x=>x.date!==today);
+    D.weighings.push({date:today,weight:w,fat:!isNaN(f)?f:null});
     D.weighings.sort((a,b)=>a.date.localeCompare(b.date));
+  }
+  // Objectif poids/MG
+  if((gw||gf)&&gdate){
+    if(!D.goals)D.goals=[];
+    D.goals=D.goals.filter(g=>g.id!=='setup-goal');
+    const label=gw&&gf?`${gw} kg · ${gf}% MG`:gw?`${gw} kg`:`${gf}% MG`;
+    D.goals.push({id:'setup-goal',label,start:startD,end:gdate,targetWeight:!isNaN(gw)?gw:null,targetFat:!isNaN(gf)?gf:null,status:null});
+    D.goals.sort((a,b)=>a.end.localeCompare(b.end));
   }
   sv();
   const ov=document.getElementById('setup-overlay');

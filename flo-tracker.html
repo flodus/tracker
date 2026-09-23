@@ -361,7 +361,7 @@ let PU={lvl:0,sem:0,day:0,set:0,counts:[],rest:false,rl:0,ri:null,done:false,cnt
     else if(s===0)return{lvl:l,sem:1,day:0};
     else return l<PU_LEVELS.length-1?{lvl:l+1,sem:0,day:0}:{lvl:l,sem:0,day:0};
   }
-  const next=succeeded?nextPos(base.lvl,base.sem,base.day):base;
+  const next=(lastHC&&succeeded)?nextPos(base.lvl,base.sem,base.day):base;
   // Si raté : on force le même jour, localStorage ignoré
   if(!succeeded){PU.lvl=next.lvl;PU.sem=next.sem;PU.day=next.day;puSave();return;}
   try{

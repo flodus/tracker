@@ -648,6 +648,23 @@ function selBougeType(k){
   _bougeType=k;
   document.querySelectorAll('[id^="bgt-"]').forEach(b=>{if(b.tagName==='BUTTON')b.classList.toggle('on',b.id==='bgt-'+k);});
 }
+let _freeType=null;
+function selFreeType(k){
+  _freeType=k;
+  document.querySelectorAll('[id^="fat-"]').forEach(b=>{if(b.tagName==='BUTTON')b.classList.toggle('on',b.id==='fat-'+k);});
+}
+function saveFreeAct(ds){
+  const dur=parseFloat($('fat-dur')?.value)||null;
+  const km=parseFloat($('fat-km')?.value)||null;
+  const note=$('fat-note')?.value||'';
+  const freeType=_freeType||'MARCHE';
+  _freeType=null;
+  if(!D.sessions)D.sessions=[];
+  D.sessions.push({date:ds,type:'FREE',freeType,done:true,duration:dur,km,note,ts:nowt()});
+  D.sessions.sort((a,b)=>a.date.localeCompare(b.date));
+  sv();closeM();
+  if(ds===ts())renderToday();else renderAll();
+}
 function saveBouge(ds){
   const note=$('bgt-note')?.value||'';
   const type=_bougeType||'HIIT';

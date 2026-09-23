@@ -611,20 +611,43 @@ function showAltModal(){
 function selectAlt(type){
   curActivity=type;closeM();renderToday();
 }
-function showBonusModal(){
-  const types=Object.entries(PROG_TYPES).filter(([k])=>k!=='REPOS');
+function showFreeActModal(date){
+  const ds=date||ts();
+  const FREE_TYPES=[{k:'MARCHE',ico:'🚶',lbl:'Marche'},{k:'VELO',ico:'🚴',lbl:'Vélo'},{k:'NATATION',ico:'🏊',lbl:'Natation'},{k:'AUTRE',ico:'🏃',lbl:'Autre'}];
   openM(`<button class="mcl" onclick="closeM()">✕</button>
-    <div class="mtit">Activité bonus 🌟</div><div class="mdt">JOUR DE REPOS — BONNE INITIATIVE !</div>
-    <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px">
-      ${types.map(([k,v])=>`<button class="btn dk" style="font-size:12px;text-transform:none" onclick="selectBonus('${k}')">${v.ico} ${k}</button>`).join('')}
+    <div class="mtit">Activité libre 🚶</div>
+    <div class="mdt">${ds===ts()?'AUJOURD\'HUI':ds}</div>
+    <div class="mst" style="margin-bottom:8px">TYPE</div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px">
+      ${FREE_TYPES.map(t=>`<button class="day-type-btn" id="fat-${t.k}" onclick="selFreeType('${t.k}')">${t.ico} ${t.lbl}</button>`).join('')}
     </div>
-    <input type="text" id="bonus-note" placeholder="Ou décris librement..." style="margin-bottom:12px">
-    <button class="btn g full" onclick="saveBonus()">Enregistrer</button>`);
+    <div class="row" style="margin-bottom:10px">
+      <div><div class="fl">Durée (min)</div><input type="number" id="fat-dur" placeholder="Ex: 45" min="1"></div>
+      <div><div class="fl">Distance (km)</div><input type="number" id="fat-km" placeholder="Ex: 4.5" step="0.1"></div>
+    </div>
+    <div class="fl">Note (optionnel)</div>
+    <input type="text" id="fat-note" placeholder="Balade en forêt..." style="margin-bottom:14px">
+    <button class="btn g full" onclick="saveFreeAct('${ds}')">Enregistrer</button>`);
 }
-function selectBonus(type){
-  const inp=$('bonus-note');if(inp)inp.value=PROG_TYPES[type]?.ico+' '+type;
-  document.querySelectorAll('#Mc .btn.dk').forEach(b=>{const on=b.textContent.includes(type);b.style.background=on?'var(--orange)':'';b.style.color=on?'#fff':'';});
+let _freeType=null;
+function selFreeType(k){
+  _freeType=k;
+  document.querySelectorAll('[id^="fat-"]').forEach(b=>{if(b.tagName==='BUTTON'){b.classList.toggle('on',b.id==='fat-'+k);}});
 }
+function saveFreeAct(ds){
+  const dur=parseFloat($('fat-dur')?.value)||null;
+  const km=parseFloat($('fat-km')?.value)||null;
+  const note=$('fat-note')?.value||'';
+  const freeType=_freeType||'MARCHE';
+  _freeType=null;
+  if(!D.sessions)D.sessions=[];
+  D.sessions.push({date:ds,type:'FREE',freeType,done:true,duration:dur,km,note,ts:nowt()});
+  D.sessions.sort((a,b)=>a.date.localeCompare(b.date));
+  sv();closeM();
+  if(ds===ts())renderToday();else renderAll();
+}
+function showBonusModal(){showFreeActModal(null);}
+function selectBonus(){}
 function saveBonus(){
   const note=$('bonus-note')?.value||'Activité bonus';const today=ts();
   D.sessions=[...(D.sessions||[]).filter(s=>s.date!==today),{date:today,type:'BONUS',done:true,note,ts:nowt()}];
@@ -675,9 +698,20 @@ function renderToday(){
       </div>`;
     }
   } else if(beforeStart){
+    const daysLeft=Math.ceil((new Date(start+'T12:00:00')-new Date())/86400000);
+    const firstDay=new Date(start+'T12:00:00').getDay();
+    const firstSess=curProg()[firstDay];
+    const freeActs=(D.sessions||[]).filter(s=>s.date===today&&s.type==='FREE');
+    const freeActHtml=freeActs.length?freeActs.map(s=>`<div style="font-size:11px;color:var(--green);margin-top:4px">✓ ${s.freeType||'Activité'}${s.duration?' · '+s.duration+'min':''}${s.km?' · '+s.km+'km':''}</div>`).join(''):'';
     motiv=`<div class="motiv" style="background:var(--orangePale);border-color:var(--orangeBorder)">
-      <div style="font-size:13px;font-weight:600;color:var(--orange)">Mode aperçu 👀</div>
-      <div style="font-size:11px;color:var(--muted);margin-top:4px">Programme démarre le <b>${start}</b>.</div>
+      <div style="font-size:32px;font-family:'Bebas Neue',sans-serif;color:var(--orange);line-height:1">${daysLeft} jour${daysLeft>1?'s':''}</div>
+      <div style="font-size:12px;font-weight:600;color:var(--orange);margin-bottom:8px">avant le début du programme</div>
+      ${firstSess?`<div style="font-size:11px;color:var(--muted);background:var(--card);border-radius:8px;padding:8px 10px;margin-bottom:10px">
+        <span style="font-weight:600">Première séance :</span> ${firstSess.ico||''} ${firstSess.det||firstSess.type}
+      </div>`:''}
+      ${freeActHtml}
+      <button class="btn dk full" style="margin-top:8px" onclick="showFreeActModal(null)">🚶 Activité libre</button>
+      <button class="btn dk full" style="margin-top:6px" onclick="showFreeActModal(null)">J'ai quand même bougé 💪</button>
     </div>`;
   } else if(sess){
     const m=MSG_OK[Math.floor(Math.random()*MSG_OK.length)];
@@ -1273,7 +1307,7 @@ function dayStatus(ds){
   if(ds<start)return'fut';
   const p=curProg()[new Date(ds+'T12:00:00').getDay()];
   const sess=(D.sessions||[]).find(s=>s.date===ds&&s.done);
-  if(!p||p.type==='REPOS'){return sess&&sess.type==='BONUS'?'dne':'rst';}
+  if(!p||p.type==='REPOS'){return(sess&&(sess.type==='BONUS'||sess.type==='FREE'))?'dne':'rst';}
   if(sess)return'dne';if(ds<today)return'msd';return'today';
 }
 function renderRecapContent(){
@@ -1362,7 +1396,9 @@ function renderCal(el){
     const nc=isT?'var(--orange)':isObj?'var(--purple)':st==='dne'?'var(--green)':st==='msd'?'var(--red)':'var(--text)';
     const dc=isObj?'var(--purple)':st==='dne'?'var(--green)':st==='msd'?'var(--red)':st==='rst'?'var(--border2)':'transparent';
     const click=st!=='fut'||isObj?`onclick="openDay('${ds}')"`:'';
-    html+=`<div class="${cls}" ${click}><div class="cn" style="color:${nc}">${day}</div><div class="cdot" style="background:${dc}"></div></div>`;
+    const freeOnDay=(D.sessions||[]).find(s=>s.date===ds&&s.type==='FREE');
+    const freeIco=freeOnDay?(freeOnDay.freeType==='MARCHE'?'🚶':freeOnDay.freeType==='VELO'?'🚴':freeOnDay.freeType==='NATATION'?'🏊':'🏃'):'';
+    html+=`<div class="${cls}" ${click}><div class="cn" style="color:${nc}">${day}</div>${freeIco?`<div style="font-size:8px;line-height:1">${freeIco}</div>`:`<div class="cdot" style="background:${dc}"></div>`}</div>`;
   }
   html+=`</div>`;el.innerHTML=html;
 }
@@ -1468,13 +1504,26 @@ function openDay(ds){
         <button class="btn rd sm" style="flex:1" onclick="setGoalStatus('${g.id}','ko');openDay('${ds}')">✗ Pas atteint</button>
       </div></div>`;
   });
-  if(sess.length){
+  const freeSess=sess.filter(s=>s.type==='FREE');
+  const progSess=sess.filter(s=>s.type!=='FREE');
+  if(freeSess.length){
+    html+=`<div class="msec" style="margin-top:10px"><div class="mst">ACTIVITÉS LIBRES</div>`;
+    freeSess.forEach(s=>{
+      const ico=s.freeType==='MARCHE'?'🚶':s.freeType==='VELO'?'🚴':s.freeType==='NATATION'?'🏊':'🏃';
+      html+=`<div style="font-size:13px;color:var(--muted);margin-bottom:4px">${ico} ${s.freeType||'Activité'}${s.duration?' · '+s.duration+' min':''}${s.km?' · '+s.km+' km':''}${s.note?' · '+s.note:''}</div>`;
+    });
+    html+=`</div>`;
+  }
+  if(progSess.length){
     html+=`<div class="msec" style="margin-top:10px"><div class="mst">SÉANCES</div>`;
-    sess.forEach(s=>{
+    progSess.forEach(s=>{
       html+=`<div style="font-size:13px;color:var(--muted);margin-bottom:6px">${s.type} ${s.done?'✓':'✗'}${s.note?' · '+s.note:''}${s.ts?' · '+s.ts:''}</div>`;
       if(s.pumpData?.counts){const badges=s.pumpData.counts.map((c,i)=>{const isL=i===s.pumpData.targets.length-1;return`<span class="tag ${isL?'on':c>=s.pumpData.targets[i]?'gn':'rd'}" style="font-size:9px">${c}${isL?' MAX':'/'+s.pumpData.targets[i]}</span>`;}).join('');html+=`<div style="margin-bottom:4px">${badges}</div>`;}
     });
     html+=`</div>`;
+  }
+  if(ds<=today){
+    html+=`<div class="msec" style="margin-top:6px"><button class="btn dk full" onclick="closeM();showFreeActModal('${ds}')">🚶 Ajouter activité libre</button></div>`;
   }
   if(weigh){const mgKg=weigh.fat?(weigh.fat/100*weigh.weight).toFixed(1):null;html+=`<div class="msec"><div class="mst">PESÉE</div><div style="font-size:16px;font-weight:600">${weigh.weight} kg${weigh.fat?' · '+weigh.fat+'% MG':''}</div>${mgKg?`<div style="font-size:12px;color:var(--muted)">${mgKg} kg gras</div>`:''}</div>`;}
   else{html+=`<div class="msec"><div class="mst">AJOUTER PESÉE</div><div class="row"><input type="number" id="mw" placeholder="Poids (kg)" step="0.1"><input type="number" id="mf" placeholder="% MG" step="0.1"></div><button class="btn full" onclick="addWeighModal('${ds}')">Enregistrer</button></div>`;}

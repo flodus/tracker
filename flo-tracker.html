@@ -616,7 +616,7 @@ function showFreeActModal(date){
   const FREE_TYPES=[{k:'MARCHE',ico:'🚶',lbl:'Marche'},{k:'VELO',ico:'🚴',lbl:'Vélo'},{k:'NATATION',ico:'🏊',lbl:'Natation'},{k:'AUTRE',ico:'🏃',lbl:'Autre'}];
   openM(`<button class="mcl" onclick="closeM()">✕</button>
     <div class="mtit">Activité libre 🚶</div>
-    <div class="mdt">${ds===ts()?'AUJOURD\'HUI':ds}</div>
+    <div class="mdt">${ds===ts()?'Aujourd\u2019hui':ds}</div>
     <div class="mst" style="margin-bottom:8px">TYPE</div>
     <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px">
       ${FREE_TYPES.map(t=>`<button class="day-type-btn" id="fat-${t.k}" onclick="selFreeType('${t.k}')">${t.ico} ${t.lbl}</button>`).join('')}
@@ -629,30 +629,36 @@ function showFreeActModal(date){
     <input type="text" id="fat-note" placeholder="Balade en forêt..." style="margin-bottom:14px">
     <button class="btn g full" onclick="saveFreeAct('${ds}')">Enregistrer</button>`);
 }
-let _freeType=null;
-function selFreeType(k){
-  _freeType=k;
-  document.querySelectorAll('[id^="fat-"]').forEach(b=>{if(b.tagName==='BUTTON'){b.classList.toggle('on',b.id==='fat-'+k);}});
+function showBougeModal(date){
+  const ds=date||ts();
+  const PROG_LIST=['HIIT','POMPES','PUSH','PULL','LEGS'];
+  openM(`<button class="mcl" onclick="closeM()">✕</button>
+    <div class="mtit">J'ai quand même bougé 💪</div>
+    <div class="mdt">${ds===ts()?'Aujourd\u2019hui':ds}</div>
+    <div class="mst" style="margin-bottom:8px">TYPE DE SÉANCE</div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px">
+      ${PROG_LIST.map(k=>`<button class="day-type-btn" id="bgt-${k}" onclick="selBougeType('${k}')">${PROG_TYPES[k]?.ico||''} ${k}</button>`).join('')}
+    </div>
+    <div class="fl">Note (optionnel)</div>
+    <input type="text" id="bgt-note" placeholder="15 min HIIT niveau 1..." style="margin-bottom:14px">
+    <button class="btn g full" onclick="saveBouge('${ds}')">Enregistrer</button>`);
 }
-function saveFreeAct(ds){
-  const dur=parseFloat($('fat-dur')?.value)||null;
-  const km=parseFloat($('fat-km')?.value)||null;
-  const note=$('fat-note')?.value||'';
-  const freeType=_freeType||'MARCHE';
-  _freeType=null;
+let _bougeType=null;
+function selBougeType(k){
+  _bougeType=k;
+  document.querySelectorAll('[id^="bgt-"]').forEach(b=>{if(b.tagName==='BUTTON')b.classList.toggle('on',b.id==='bgt-'+k);});
+}
+function saveBouge(ds){
+  const note=$('bgt-note')?.value||'';
+  const type=_bougeType||'HIIT';
+  _bougeType=null;
   if(!D.sessions)D.sessions=[];
-  D.sessions.push({date:ds,type:'FREE',freeType,done:true,duration:dur,km,note,ts:nowt()});
+  D.sessions.push({date:ds,type:'BONUS',bonusType:type,done:true,note,ts:nowt()});
   D.sessions.sort((a,b)=>a.date.localeCompare(b.date));
   sv();closeM();
   if(ds===ts())renderToday();else renderAll();
 }
-function showBonusModal(){showFreeActModal(null);}
-function selectBonus(){}
-function saveBonus(){
-  const note=$('bonus-note')?.value||'Activité bonus';const today=ts();
-  D.sessions=[...(D.sessions||[]).filter(s=>s.date!==today),{date:today,type:'BONUS',done:true,note,ts:nowt()}];
-  curActivity=null;sv();closeM();renderToday();
-}
+function showBonusModal(){showBougeModal(null);}
 
 // ══ TAB 0 — TODAY ═════════════════════════════
 function renderToday(){
@@ -693,7 +699,7 @@ function renderToday(){
       ${freeActHtml}
       <div style="display:flex;gap:6px;margin-top:12px">
         <button class="btn dk" style="flex:1" onclick="showFreeActModal(null)">🚶 Activité libre</button>
-        <button class="btn dk" style="flex:1" onclick="showFreeActModal(null)">J'ai quand même bougé 💪</button>
+        <button class="btn dk" style="flex:1" onclick="showBougeModal(null)">J'ai quand même bougé 💪</button>
       </div>
     </div>`;
     // Bloc rouge : prochaine séance
@@ -1404,7 +1410,8 @@ function renderCal(el){
     const dc=isObj?'var(--purple)':st==='dne'?'var(--green)':st==='msd'?'var(--red)':st==='rst'?'var(--border2)':'transparent';
     const click=st!=='fut'||isObj?`onclick="openDay('${ds}')"`:(ds<=today?`onclick="showFreeActModal('${ds}')"`:'');
     const freeOnDay=(D.sessions||[]).find(s=>s.date===ds&&s.type==='FREE');
-    const freeIco=freeOnDay?(freeOnDay.freeType==='MARCHE'?'🚶':freeOnDay.freeType==='VELO'?'🚴':freeOnDay.freeType==='NATATION'?'🏊':'🏃'):'';
+    const bonusOnDay=(D.sessions||[]).find(s=>s.date===ds&&s.type==='BONUS');
+    const freeIco=freeOnDay?(freeOnDay.freeType==='MARCHE'?'🚶':freeOnDay.freeType==='VELO'?'🚴':freeOnDay.freeType==='NATATION'?'🏊':'🏃'):bonusOnDay?'💪':'';
     html+=`<div class="${cls}" ${click}><div class="cn" style="color:${nc}">${day}</div>${freeIco?`<div style="font-size:8px;line-height:1">${freeIco}</div>`:`<div class="cdot" style="background:${dc}"></div>`}</div>`;
   }
   html+=`</div>`;el.innerHTML=html;
@@ -1530,7 +1537,10 @@ function openDay(ds){
     html+=`</div>`;
   }
   if(ds<=today){
-    html+=`<div class="msec" style="margin-top:6px"><button class="btn dk full" onclick="closeM();showFreeActModal('${ds}')">🚶 Ajouter activité libre</button></div>`;
+    html+=`<div class="msec" style="margin-top:6px;display:flex;gap:6px">
+      <button class="btn dk" style="flex:1" onclick="closeM();showFreeActModal('${ds}')">🚶 Activité libre</button>
+      <button class="btn dk" style="flex:1" onclick="closeM();showBougeModal('${ds}')">💪 J'ai bougé</button>
+    </div>`;
   }
   if(weigh){const mgKg=weigh.fat?(weigh.fat/100*weigh.weight).toFixed(1):null;html+=`<div class="msec"><div class="mst">PESÉE</div><div style="font-size:16px;font-weight:600">${weigh.weight} kg${weigh.fat?' · '+weigh.fat+'% MG':''}</div>${mgKg?`<div style="font-size:12px;color:var(--muted)">${mgKg} kg gras</div>`:''}</div>`;}
   else{html+=`<div class="msec"><div class="mst">AJOUTER PESÉE</div><div class="row"><input type="number" id="mw" placeholder="Poids (kg)" step="0.1"><input type="number" id="mf" placeholder="% MG" step="0.1"></div><button class="btn full" onclick="addWeighModal('${ds}')">Enregistrer</button></div>`;}

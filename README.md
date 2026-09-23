@@ -2,15 +2,23 @@
 
 Application personnelle de suivi fitness — HTML standalone, 100% offline.
 
-# Lien Direct
+## Lien direct
+
 https://flodus.github.io/tracker/flo-tracker.html
 
 ## C'est quoi
 
-Tracker de remise en forme démarré le 1er juin 2026. Programme HIIT + Challenge 100 pompes.  
-Une seule page HTML, aucune dépendance serveur, tout est stocké en localStorage.
+Un tracker de remise en forme personnel. Une seule page HTML, aucune dépendance serveur, tout est stocké en localStorage.
 
-## Programme
+## Fonctionnalités
+
+- **Écran de démarrage** — configuration du programme : date de début, pesée du jour, objectif poids/MG avec date cible
+- **Onglet Aujourd'hui** — module HIIT (YouTube ou timer) + module pompes avec timer de repos, compteur série par série, S5 MAX libre ; messages de motivation selon l'avancement
+- **Onglet Pesées** — graphique double (poids + % MG) avec zones cibles, courbe de tendance, projection vers l'objectif, historique
+- **Onglet Séances** — historique détaillé + tableaux de référence des programmes
+- **Onglet Recap** — stats, calendrier mensuel (jours avant le début grisés), objectifs, journal, compteur jours sans alcool, export/import CSV
+
+## Programme par défaut
 
 | Jour | Séance |
 |------|--------|
@@ -22,13 +30,6 @@ Une seule page HTML, aucune dépendance serveur, tout est stocké en localStorag
 | Samedi | Challenge 100 pompes |
 | Dimanche | Repos |
 
-## Fonctionnalités
-
-- **Onglet Aujourd'hui** — module HIIT (YouTube ou timer) + module pompes avec timer de repos, compteur série par série, S5 MAX libre
-- **Onglet Pesées** — graphique double (poids + % MG) avec zones cibles, historique
-- **Onglet Séances** — historique détaillé + tableaux de référence des programmes
-- **Onglet Recap** — streak, calendrier mensuel, objectifs, journal
-
 ## Challenge 100 pompes
 
 3 niveaux (11-20 / 21-25 / 26-30 pompes), 2 semaines par niveau, 3 jours par semaine.  
@@ -37,16 +38,21 @@ S5 = MAX : la cible est un minimum, on note le vrai chiffre réalisé.
 
 ## Objectifs
 
-- 🎪 Festival avec Louise — 17 juillet 2026
-- 💛 Rencontre Aurélie — 4 août 2026
+Configurables au démarrage ou depuis l'onglet Recap → Objectifs.  
+Poids cible + % MG cible + date cible → courbe de projection visible dans l'onglet Pesées.
 
-## Utilisation
+## Synchronisation PC ↔ téléphone
 
-### En local
-Ouvrir `flo-tracker.html` directement dans le navigateur.
+Les données sont locales à chaque appareil (localStorage). Pour synchroniser :
 
-### Comme appli Android (PWA)
-1. Ouvrir l'URL GitHub Pages dans Chrome : `https://[username].github.io/[repo]/flo-tracker.html`
+1. **Recap → Stats → Exporter CSV** sur l'appareil source
+2. **Recap → Stats → Importer CSV** sur l'appareil destination
+
+Les doublons sont ignorés automatiquement.
+
+## Installation comme appli Android (PWA)
+
+1. Ouvrir l'URL dans Chrome : `https://flodus.github.io/tracker/flo-tracker.html`
 2. Menu ⋮ → **Ajouter à l'écran d'accueil**
 3. L'appli s'installe et fonctionne offline
 
@@ -54,6 +60,6 @@ Ouvrir `flo-tracker.html` directement dans le navigateur.
 
 - Fichier unique `flo-tracker.html` — HTML + CSS + JS inline
 - `localStorage` key : `flo_tracker` (jamais versionnée)
-- Données de référence hardcodées (HC_SESSIONS / HC_WEIGHINGS) — priorité absolue sur localStorage pour les dates concernées
+- Données de référence hardcodées (`HC_SESSIONS` / `HC_WEIGHINGS`) — priorité absolue sur localStorage pour les dates concernées
 - PWA : manifest inline + service worker blob — pas de fichiers séparés nécessaires
 - Aucune dépendance externe sauf Google Fonts (Inter + Bebas Neue)

@@ -279,6 +279,8 @@ HC_SESSIONS.forEach(hs=>{
 D.sessions.sort((a,b)=>a.date.localeCompare(b.date));
 
 if(!D.goals||D.goals.length===0)D.goals=[...DEFAULT_GOALS];
+// Migration : end → date pour anciens objectifs
+(D.goals||[]).forEach(g=>{if(g.end&&!g.date){g.date=g.end;}});
 if(!D.journal)D.journal=[];
 if(!D.renfo)D.renfo={enabled:false};
 
@@ -1375,13 +1377,13 @@ function renderObjectifs(el){
     html+=`<div class="obj-card ${cls}">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">
         <div style="font-size:15px;font-weight:700;flex:1">${g.label}</div>
-        <div style="font-size:10px;color:var(--muted);text-align:right;flex-shrink:0;margin-left:8px">${g.date}${!isPast?`<br><b style="color:var(--orange)">${daysLeft}j</b>`:''}</div>
+        <div style="font-size:10px;color:var(--muted);text-align:right;flex-shrink:0;margin-left:8px">${g.date||g.end||''}${!isPast?`<br><b style="color:var(--orange)">${daysLeft}j</b>`:''}</div>
       </div>
       ${g.status==='ok'?'<div style="margin-bottom:8px"><span class="tag gn">✓ Atteint 🎉</span></div>':g.status==='ko'?'<div style="margin-bottom:8px"><span class="tag rd">✗ Pas atteint</span></div>':isPast||isToday?'<div style="margin-bottom:8px"><span class="tag pu">📅 À valider</span></div>':''}
-      <div style="font-size:12px;color:var(--muted);margin-bottom:10px;line-height:1.5">${g.why}</div>
+      ${g.why?`<div style="font-size:12px;color:var(--muted);margin-bottom:10px;line-height:1.5">${g.why}</div>`:''}
       <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">
-        <div style="background:var(--card2);border-radius:6px;padding:6px 10px;font-size:11px"><span style="color:var(--dim)">Poids cible</span><br><b style="color:var(--blue)">${g.targetWeight} kg</b></div>
-        <div style="background:var(--card2);border-radius:6px;padding:6px 10px;font-size:11px"><span style="color:var(--dim)">MG cible</span><br><b style="color:var(--green)">${g.targetFat}%</b></div>
+        ${g.targetWeight!=null?`<div style="background:var(--card2);border-radius:6px;padding:6px 10px;font-size:11px"><span style="color:var(--dim)">Poids cible</span><br><b style="color:var(--blue)">${g.targetWeight} kg</b></div>`:''}
+        ${g.targetFat!=null?`<div style="background:var(--card2);border-radius:6px;padding:6px 10px;font-size:11px"><span style="color:var(--dim)">MG cible</span><br><b style="color:var(--green)">${g.targetFat}%</b></div>`:''}
         ${lastW?`<div style="background:var(--card2);border-radius:6px;padding:6px 10px;font-size:11px"><span style="color:var(--dim)">Maintenant</span><br><b style="color:${wColor()}">${lastW.weight}kg${lastW.fat?' · '+lastW.fat+'%':''}</b></div>`:''}
       </div>
       ${g.feeling?`<div style="font-size:12px;color:var(--muted);font-style:italic;padding:8px;background:var(--card2);border-radius:6px;margin-bottom:8px">"${g.feeling}"</div>`:''}
@@ -1607,7 +1609,7 @@ function setupDone(){
     D.goals=D.goals.filter(g=>g.id!=='setup-goal');
     const label=gw&&gf?`${gw} kg · ${gf}% MG`:gw?`${gw} kg`:`${gf}% MG`;
     D.goals.push({id:'setup-goal',label,start:startD,date:gdate,targetWeight:!isNaN(gw)?gw:null,targetFat:!isNaN(gf)?gf:null,status:null});
-    D.goals.sort((a,b)=>a.end.localeCompare(b.end));
+    D.goals.sort((a,b)=>(a.date||a.end||'').localeCompare(b.date||b.end||''));
   }
   sv();
   const ov=document.getElementById('setup-overlay');

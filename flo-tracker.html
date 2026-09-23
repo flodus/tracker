@@ -611,6 +611,16 @@ function showAltModal(){
 function selectAlt(type){
   curActivity=type;closeM();renderToday();
 }
+function showActivityChoiceModal(ds){
+  const label=ds===ts()?'Aujourd\u2019hui':ds;
+  openM(`<button class="mcl" onclick="closeM()">✕</button>
+    <div class="mtit">Ajouter une activité</div>
+    <div class="mdt">${label}</div>
+    <div style="display:flex;flex-direction:column;gap:10px;margin-top:16px">
+      <button class="btn dk full" style="padding:16px;font-size:13px" onclick="closeM();setTimeout(()=>showFreeActModal('${ds}'),50)">🚶 Activité libre<br><span style="font-size:10px;font-weight:400;opacity:0.7">Marche · Vélo · Natation · Autre</span></button>
+      <button class="btn dk full" style="padding:16px;font-size:13px" onclick="closeM();setTimeout(()=>showBougeModal('${ds}'),50)">💪 J'ai quand même bougé<br><span style="font-size:10px;font-weight:400;opacity:0.7">HIIT · Pompes · Push · Pull · Legs</span></button>
+    </div>`);
+}
 function showFreeActModal(date){
   const ds=date||ts();
   const FREE_TYPES=[{k:'MARCHE',ico:'🚶',lbl:'Marche'},{k:'VELO',ico:'🚴',lbl:'Vélo'},{k:'NATATION',ico:'🏊',lbl:'Natation'},{k:'AUTRE',ico:'🏃',lbl:'Autre'}];
@@ -654,10 +664,11 @@ function selFreeType(k){
   document.querySelectorAll('[id^="fat-"]').forEach(b=>{if(b.tagName==='BUTTON')b.classList.toggle('on',b.id==='fat-'+k);});
 }
 function saveFreeAct(ds){
+  if(!_freeType){alert('Choisis un type d\'activité !');return;}
   const dur=parseFloat($('fat-dur')?.value)||null;
   const km=parseFloat($('fat-km')?.value)||null;
   const note=$('fat-note')?.value||'';
-  const freeType=_freeType||'MARCHE';
+  const freeType=_freeType;
   _freeType=null;
   if(!D.sessions)D.sessions=[];
   D.sessions.push({date:ds,type:'FREE',freeType,done:true,duration:dur,km,note,ts:nowt()});
@@ -666,6 +677,7 @@ function saveFreeAct(ds){
   if(ds===ts())renderToday();else renderAll();
 }
 function saveBouge(ds){
+  if(!_bougeType){alert('Choisis un type de séance !');return;}
   const note=$('bgt-note')?.value||'';
   const type=_bougeType||'HIIT';
   _bougeType=null;
@@ -1425,7 +1437,7 @@ function renderCal(el){
     let cls=`cd${st==='dne'?' dne':st==='msd'?' msd':st==='rst'?' rst':st==='fut'?' fut':''}${isT?' today':''}${isObj?' obj':''}`;
     const nc=isT?'var(--orange)':isObj?'var(--purple)':st==='dne'?'var(--green)':st==='msd'?'var(--red)':'var(--text)';
     const dc=isObj?'var(--purple)':st==='dne'?'var(--green)':st==='msd'?'var(--red)':st==='rst'?'var(--border2)':'transparent';
-    const click=st!=='fut'||isObj?`onclick="openDay('${ds}')"`:(ds<=today?`onclick="showFreeActModal('${ds}')"`:'');
+    const click=st!=='fut'||isObj?`onclick="openDay('${ds}')"`:(ds<=today?`onclick="showActivityChoiceModal('${ds}')"`:'');
     const freeOnDay=(D.sessions||[]).find(s=>s.date===ds&&s.type==='FREE');
     const bonusOnDay=(D.sessions||[]).find(s=>s.date===ds&&s.type==='BONUS');
     const freeIco=freeOnDay?(freeOnDay.freeType==='MARCHE'?'🚶':freeOnDay.freeType==='VELO'?'🚴':freeOnDay.freeType==='NATATION'?'🏊':'🏃'):bonusOnDay?'💪':'';
@@ -1554,10 +1566,7 @@ function openDay(ds){
     html+=`</div>`;
   }
   if(ds<=today){
-    html+=`<div class="msec" style="margin-top:6px;display:flex;gap:6px">
-      <button class="btn dk" style="flex:1" onclick="closeM();showFreeActModal('${ds}')">🚶 Activité libre</button>
-      <button class="btn dk" style="flex:1" onclick="closeM();showBougeModal('${ds}')">💪 J'ai bougé</button>
-    </div>`;
+    html+=`<div class="msec" style="margin-top:6px"><button class="btn dk full" onclick="closeM();setTimeout(()=>showActivityChoiceModal('${ds}'),50)">➕ Ajouter une activité</button></div>`;
   }
   if(weigh){const mgKg=weigh.fat?(weigh.fat/100*weigh.weight).toFixed(1):null;html+=`<div class="msec"><div class="mst">PESÉE</div><div style="font-size:16px;font-weight:600">${weigh.weight} kg${weigh.fat?' · '+weigh.fat+'% MG':''}</div>${mgKg?`<div style="font-size:12px;color:var(--muted)">${mgKg} kg gras</div>`:''}</div>`;}
   else{html+=`<div class="msec"><div class="mst">AJOUTER PESÉE</div><div class="row"><input type="number" id="mw" placeholder="Poids (kg)" step="0.1"><input type="number" id="mf" placeholder="% MG" step="0.1"></div><button class="btn full" onclick="addWeighModal('${ds}')">Enregistrer</button></div>`;}

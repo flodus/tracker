@@ -680,7 +680,30 @@ function renderToday(){
   // MOTIV — purely informational, no check buttons
   let motiv='';
   const isRest=progDay?.type==='REPOS'&&!curActivity;
-  if(isRest){
+  if(beforeStart){
+    const daysLeft=Math.ceil((new Date(start+'T12:00:00')-new Date())/86400000);
+    const firstDay=new Date(start+'T12:00:00').getDay();
+    const firstSess=curProg()[firstDay];
+    const freeActs=(D.sessions||[]).filter(s=>s.date===today&&s.type==='FREE');
+    const freeActHtml=freeActs.length?freeActs.map(s=>`<div style="font-size:11px;color:var(--green);margin-top:6px">✓ ${s.freeType||'Activité'}${s.duration?' · '+s.duration+'min':''}${s.km?' · '+s.km+'km':''}</div>`).join(''):'';
+    // Bloc bleu : compte à rebours + bouton bougé
+    motiv=`<div class="motiv" style="background:var(--bluePale);border-color:var(--blueBorder)">
+      <div style="font-size:11px;color:var(--blue);font-weight:600;letter-spacing:1px;text-transform:uppercase;margin-bottom:6px">Programme dans</div>
+      <div style="font-size:44px;font-family:'Bebas Neue',sans-serif;color:var(--blue);line-height:1">${daysLeft}<span style="font-size:16px"> jour${daysLeft>1?'s':''}</span></div>
+      ${freeActHtml}
+      <div style="display:flex;gap:6px;margin-top:12px">
+        <button class="btn dk" style="flex:1" onclick="showFreeActModal(null)">🚶 Activité libre</button>
+        <button class="btn dk" style="flex:1" onclick="showFreeActModal(null)">J'ai quand même bougé 💪</button>
+      </div>
+    </div>`;
+    // Bloc rouge : prochaine séance
+    $('t0-prog').innerHTML=`<div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;font-weight:600">Prochaine séance · ${fmtShort(start)}</div>
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:24px;color:var(--orange);margin-top:2px">${firstSess?.type||'HIIT'}</div>
+      <div style="font-size:12px;color:var(--muted);margin-top:4px">${firstSess?.det||''}</div>`;
+    $('t0-motiv').innerHTML=motiv;
+    $('t0-module').innerHTML='';
+    return;
+  } else if(isRest){
     const bonus=(D.sessions||[]).find(s=>s.date===today&&s.done);
     if(bonus){
       motiv=`<div class="motiv" style="background:var(--greenPale);border-color:var(--greenBorder)">
@@ -697,22 +720,6 @@ function renderToday(){
         <button class="btn dk full" style="margin-top:12px" onclick="showBonusModal()">J'ai quand même bougé 💪</button>
       </div>`;
     }
-  } else if(beforeStart){
-    const daysLeft=Math.ceil((new Date(start+'T12:00:00')-new Date())/86400000);
-    const firstDay=new Date(start+'T12:00:00').getDay();
-    const firstSess=curProg()[firstDay];
-    const freeActs=(D.sessions||[]).filter(s=>s.date===today&&s.type==='FREE');
-    const freeActHtml=freeActs.length?freeActs.map(s=>`<div style="font-size:11px;color:var(--green);margin-top:4px">✓ ${s.freeType||'Activité'}${s.duration?' · '+s.duration+'min':''}${s.km?' · '+s.km+'km':''}</div>`).join(''):'';
-    motiv=`<div class="motiv" style="background:var(--orangePale);border-color:var(--orangeBorder)">
-      <div style="font-size:32px;font-family:'Bebas Neue',sans-serif;color:var(--orange);line-height:1">${daysLeft} jour${daysLeft>1?'s':''}</div>
-      <div style="font-size:12px;font-weight:600;color:var(--orange);margin-bottom:8px">avant le début du programme</div>
-      ${firstSess?`<div style="font-size:11px;color:var(--muted);background:var(--card);border-radius:8px;padding:8px 10px;margin-bottom:10px">
-        <span style="font-weight:600">Première séance :</span> ${firstSess.ico||''} ${firstSess.det||firstSess.type}
-      </div>`:''}
-      ${freeActHtml}
-      <button class="btn dk full" style="margin-top:8px" onclick="showFreeActModal(null)">🚶 Activité libre</button>
-      <button class="btn dk full" style="margin-top:6px" onclick="showFreeActModal(null)">J'ai quand même bougé 💪</button>
-    </div>`;
   } else if(sess){
     const m=MSG_OK[Math.floor(Math.random()*MSG_OK.length)];
     motiv=`<div class="motiv" style="background:var(--greenPale);border-color:var(--greenBorder)">
@@ -1395,7 +1402,7 @@ function renderCal(el){
     let cls=`cd${st==='dne'?' dne':st==='msd'?' msd':st==='rst'?' rst':st==='fut'?' fut':''}${isT?' today':''}${isObj?' obj':''}`;
     const nc=isT?'var(--orange)':isObj?'var(--purple)':st==='dne'?'var(--green)':st==='msd'?'var(--red)':'var(--text)';
     const dc=isObj?'var(--purple)':st==='dne'?'var(--green)':st==='msd'?'var(--red)':st==='rst'?'var(--border2)':'transparent';
-    const click=st!=='fut'||isObj?`onclick="openDay('${ds}')"`:'';
+    const click=st!=='fut'||isObj?`onclick="openDay('${ds}')"`:(ds<=today?`onclick="showFreeActModal('${ds}')"`:'');
     const freeOnDay=(D.sessions||[]).find(s=>s.date===ds&&s.type==='FREE');
     const freeIco=freeOnDay?(freeOnDay.freeType==='MARCHE'?'🚶':freeOnDay.freeType==='VELO'?'🚴':freeOnDay.freeType==='NATATION'?'🏊':'🏃'):'';
     html+=`<div class="${cls}" ${click}><div class="cn" style="color:${nc}">${day}</div>${freeIco?`<div style="font-size:8px;line-height:1">${freeIco}</div>`:`<div class="cdot" style="background:${dc}"></div>`}</div>`;

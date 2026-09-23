@@ -485,7 +485,14 @@ function startDate(){return nextGoal()?.start||D.goals?.[0]?.start||'2026-06-01'
 function fmtShort(ds){const d=new Date(ds+'T12:00:00');return d.getDate()+' '+FR_M[d.getMonth()].slice(0,4);}
 function renderHeader(){
   const today=new Date();const ng=nextGoal();
-  if(!ng){$('cdnum').textContent='✓';$('hdr-obj').textContent='Tous les objectifs atteints 🏆';$('pfill').style.width='100%';return;}
+  const startD=D.startDate||ts();
+  if(today.toISOString().split('T')[0]<startD){
+    const daysToStart=Math.ceil((new Date(startD+'T12:00:00')-today)/86400000);
+    $('cdnum').textContent=daysToStart;$('hdr-obj').textContent='jours avant le début \uD83D\uDDD3\uFE0F';$('pfill').style.width='0%';
+    $('pl1').textContent='Aujourd\u2019hui';$('pl2').textContent=fmtShort(startD);$('plpct').textContent='';
+    $('hdr-prog').textContent='';$('pjalons').innerHTML='';return;
+  }
+  if(!ng){$('cdnum').textContent='\u2713';$('hdr-obj').textContent='Tous les objectifs atteints \uD83C\uDFC6';$('pfill').style.width='100%';return;}
   const target=new Date(ng.date+'T12:00:00');const start=new Date(ng.start+'T12:00:00');
   const diff=Math.max(0,Math.ceil((target-today)/86400000));
   const total=Math.ceil((target-start)/86400000)||1;
@@ -1261,10 +1268,10 @@ function calNav(d){calM+=d;if(calM<0){calM=11;calY--;}if(calM>11){calM=0;calY++;
 function dayStatus(ds){
   const today=ts();const start=startDate();
   if(ds>today)return'fut';
+  if(ds<start)return'fut';
   const p=curProg()[new Date(ds+'T12:00:00').getDay()];
   const sess=(D.sessions||[]).find(s=>s.date===ds&&s.done);
   if(!p||p.type==='REPOS'){return sess&&sess.type==='BONUS'?'dne':'rst';}
-  if(ds<start)return'rst';
   if(sess)return'dne';if(ds<today)return'msd';return'today';
 }
 function renderRecapContent(){

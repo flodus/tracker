@@ -1017,7 +1017,7 @@ function renderWeigh(){
       // Calculer la position X de la date cible par rapport à la plage affichée
       const firstDate=new Date(ws[0].date+'T12:00:00');
       const lastDate=new Date(ws[ws.length-1].date+'T12:00:00');
-      const goalDate=new Date(goal.end+'T12:00:00');
+      const goalDate=new Date(goal.date+'T12:00:00');
       const totalDays=(lastDate-firstDate)/(86400000)||1;
       const goalDays=(goalDate-firstDate)/(86400000);
       const xRange=gW-pad*2;
@@ -1049,7 +1049,7 @@ function renderWeigh(){
       if(goal&&goal.targetFat&&fPts.length>=1){
         const firstDate=new Date(ws[0].date+'T12:00:00');
         const lastDate=new Date(ws[ws.length-1].date+'T12:00:00');
-        const goalDate=new Date(goal.end+'T12:00:00');
+        const goalDate=new Date(goal.date+'T12:00:00');
         const totalDays=(lastDate-firstDate)/(86400000)||1;
         const goalDays=(goalDate-firstDate)/(86400000);
         const xRange=gW-pad*2;
@@ -1606,7 +1606,7 @@ function setupDone(){
     if(!D.goals)D.goals=[];
     D.goals=D.goals.filter(g=>g.id!=='setup-goal');
     const label=gw&&gf?`${gw} kg · ${gf}% MG`:gw?`${gw} kg`:`${gf}% MG`;
-    D.goals.push({id:'setup-goal',label,start:startD,end:gdate,targetWeight:!isNaN(gw)?gw:null,targetFat:!isNaN(gf)?gf:null,status:null});
+    D.goals.push({id:'setup-goal',label,start:startD,date:gdate,targetWeight:!isNaN(gw)?gw:null,targetFat:!isNaN(gf)?gf:null,status:null});
     D.goals.sort((a,b)=>a.end.localeCompare(b.end));
   }
   sv();
